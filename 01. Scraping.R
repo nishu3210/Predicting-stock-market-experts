@@ -12,13 +12,17 @@
 library(RSelenium)
 library(XML)
 
+#### Settings for connecting to the web through R and accessing the website
 # rsDriver(port = 4567L, browser = c("internet explorer"), version = "latest", chromever = "latest", geckover = "latest", iedrver = NULL, phantomver = "2.1.1", verbose = TRUE, check = TRUE)
 rD <- rsDriver(port = 4443L)
 remDr <- rD[["client"]]
 remDr$open()
-url = 'https://www.gurufocus.com/stock/AAPL'
+url = 'https://www.gurufocus.com/stock/AAPL' #webpage to be scraped (Historical stock price for Apple)
 remDr$navigate(url)
 table2 = data.frame()
+
+#### Used a for loop to get all the values from the table as only limited number of results were displayed on one page
+#### Hence, a new webpage has to be visited by clicking on next through the script below
 for(i in 1:57)
 {
   webelem = remDr$findElement(using = "css selector",'#guruTradesTb')
@@ -28,19 +32,23 @@ for(i in 1:57)
   # Sys.sleep(2)
   table1[,4] = as.numeric(as.numeric(gsub('%', '', table1[,4])))
   table3 = table1
+  
+  #To make sure the next webpage has been loaded, I check whether the data in the table has been changed or not
   while(sum(table1[,4]==table3[,4],na.rm = T)==sum(!is.na(table1[,4]))){
     webelem = remDr$findElement(using = "css selector",'#guruTradesTb')
     result = webelem$getElementAttribute("outerHTML")
     table3 = readHTMLTable(result[[1]], as.data.frame=TRUE)[[1]]
     table3[,4] = as.numeric(as.numeric(gsub('%', '', table3[,4])))
   }
+  
+  #After the above step, the scraped data is appended to the final table
   table2 = rbind.data.frame(table2,table1)
 }
 sum(duplicated(table2))
 colnames(table2) = trimws(colnames(table2))
 write.csv(table2,"Apple.csv",row.names = F)
 
-####
+#### Same thing for different page on the same website
 
 remDr <- rD[["client"]]
 remDr$open()
